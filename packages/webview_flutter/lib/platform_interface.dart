@@ -275,10 +275,17 @@ abstract class WebViewPlatformController {
   /// Removes JavaScript channel names from the set of enabled channels.
   ///
   /// This disables channels that were previously enabled by [addJavaScriptChannels] or through
-  /// [CreationParams.javascriptChannelNames].
+  /// See also: [CreationParams.javascriptChannelNames].
   Future<void> removeJavascriptChannels(Set<String> javascriptChannelNames) {
     throw UnimplementedError(
         "WebView removeJavascriptChannels is not implemented on the current platform");
+  }
+
+  /// Adds new JavaScript interface to the webview for channels.
+  /// See also: [CreationParams.javascriptInterface].
+  Future<void> addJavascriptInterface(JavaScriptInterface javaScriptInterface) {
+    throw UnimplementedError(
+        "WebView addJavascriptChannels is not implemented on the current platform");
   }
 
   /// Returns the title of the currently loaded page.
@@ -431,6 +438,30 @@ class WebSettings {
   }
 }
 
+/// JavaScript interface for adding to WebView.
+class JavaScriptInterface {
+  /// Construct an instance with initial javascript interface.
+  ///
+  /// The `channels` parameter must not be null.
+  /// The `interfaceName` parameter must not be null.
+  JavaScriptInterface({
+    required this.channels,
+    required this.interfaceName,
+  }) : assert(channels != null),
+        assert(interfaceName != null);
+
+  /// Interface name to be added to webview
+  final String interfaceName;
+
+  /// Channels to be added to interface
+  final Set<String> channels;
+
+  @override
+  String toString() {
+    return 'JavaScriptInterface(interfaceName: $interfaceName, channels: $channels)';
+  }
+}
+
 /// Configuration to use when creating a new [WebViewPlatformController].
 ///
 /// The `autoMediaPlaybackPolicy` parameter must not be null.
@@ -443,6 +474,7 @@ class CreationParams {
     this.initialUrl,
     this.webSettings,
     this.javascriptChannelNames = const <String>{},
+    this.javascriptInterface,
     this.userAgent,
     this.autoMediaPlaybackPolicy =
         AutoMediaPlaybackPolicy.require_user_action_for_all_media_types,
@@ -471,6 +503,10 @@ class CreationParams {
   // to PlatformWebView.
   final Set<String> javascriptChannelNames;
 
+
+  /// The initial [JavaScriptInterface] that contains channels to add to the webview.
+  final JavaScriptInterface? javascriptInterface;
+
   /// The value used for the HTTP User-Agent: request header.
   ///
   /// When null the platform's webview default is used for the User-Agent header.
@@ -481,7 +517,11 @@ class CreationParams {
 
   @override
   String toString() {
-    return '$runtimeType(initialUrl: $initialUrl, settings: $webSettings, javascriptChannelNames: $javascriptChannelNames, UserAgent: $userAgent)';
+    return '$runtimeType(initialUrl: $initialUrl, '
+        'settings: $webSettings, '
+        'javascriptChannelNames: $javascriptChannelNames, '
+        'javascriptInterface: $javascriptInterface, '
+        'UserAgent: $userAgent)';
   }
 }
 

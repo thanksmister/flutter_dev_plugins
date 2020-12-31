@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'platform_interface.dart';
+import 'platform_interface.dart';
+import 'platform_interface.dart';
 import 'src/webview_android.dart';
 import 'src/webview_cupertino.dart';
 import 'src/webview_method_channel.dart';
@@ -211,8 +213,9 @@ class WebView extends StatefulWidget {
     Key? key,
     this.onWebViewCreated,
     this.initialUrl,
-    this.javascriptMode = JavascriptMode.disabled,
+    this.javascriptMode = JavascriptMode.unrestricted,
     this.javascriptChannels,
+    this.javaScriptInterfaceName,
     this.navigationDelegate,
     this.gestureRecognizers,
     this.onPageStarted,
@@ -310,6 +313,10 @@ class WebView extends StatefulWidget {
   ///
   /// A null value is equivalent to an empty set.
   final Set<JavascriptChannel>? javascriptChannels;
+
+  /// The string is available to JavaScript code running in the web view.
+  /// A null value is equivalent to no interface.
+  final String? javaScriptInterfaceName;
 
   /// A delegate function that decides how to handle navigation actions.
   ///
@@ -467,8 +474,16 @@ CreationParams _creationParamsfromWidget(WebView widget) {
     initialUrl: widget.initialUrl,
     webSettings: _webSettingsFromWidget(widget),
     javascriptChannelNames: _extractChannelNames(widget.javascriptChannels),
+    javascriptInterface: _javaScriptInterfaceFromWidget(widget),
     userAgent: widget.userAgent,
     autoMediaPlaybackPolicy: widget.initialMediaPlaybackPolicy,
+  );
+}
+
+JavaScriptInterface _javaScriptInterfaceFromWidget(WebView widget) {
+  return JavaScriptInterface(
+    channels: _extractChannelNames(widget.javascriptChannels),
+    interfaceName: widget.javaScriptInterfaceName ?? ""
   );
 }
 
@@ -691,6 +706,7 @@ class WebViewController {
     _widget = widget;
     await _updateSettings(_webSettingsFromWidget(widget));
     await _updateJavascriptChannels(widget.javascriptChannels);
+    await _updateJavaScriptInterface(widget.javaScriptInterfaceName);
   }
 
   Future<void> _updateSettings(WebSettings newSettings) {
@@ -698,6 +714,14 @@ class WebViewController {
         _clearUnchangedWebSettings(_settings, newSettings);
     _settings = newSettings;
     return _webViewPlatformController.updateSettings(update);
+  }
+
+  Future<void> _updateJavaScriptInterface(String? newInterfaceName) async {
+    if(newInterfaceName != null && newInterfaceName.isNotEmpty) {
+      final Set<String> updatedChannels = _platformCallbacksHandler._javascriptChannels.keys.toSet();
+      JavaScriptInterface interface = JavaScriptInterface(interfaceName: newInterfaceName, channels: updatedChannels);
+      await _webViewPlatformController.addJavascriptInterface(interface);
+    }
   }
 
   Future<void> _updateJavascriptChannels(

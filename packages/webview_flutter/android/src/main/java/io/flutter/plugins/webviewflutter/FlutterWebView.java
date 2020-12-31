@@ -24,11 +24,13 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.platform.PlatformView;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class FlutterWebView implements PlatformView, MethodCallHandler {
   private static final String JS_CHANNEL_NAMES_FIELD = "javascriptChannelNames";
+  private static final String JS_INTERFACE_FIELD = "javascriptInterface";
   private final InputAwareWebView webView;
   private final MethodChannel methodChannel;
   private final FlutterWebViewClient flutterWebViewClient;
@@ -106,7 +108,14 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
     Map<String, Object> settings = (Map<String, Object>) params.get("settings");
     if (settings != null) applySettings(settings);
 
-    if (params.containsKey(JS_CHANNEL_NAMES_FIELD)) {
+    if (params.containsKey(JS_INTERFACE_FIELD)) {
+      Map<String, Object> javascriptInterface = (Map<String, Object>) params.get(JS_INTERFACE_FIELD);
+      String interfaceName = (String) javascriptInterface.get("interfaceName");
+      List<String> channelNames = (List<String>) javascriptInterface.get("channelNames");
+      if (channelNames != null && interfaceName != null && !interfaceName.isEmpty()) {
+        registerJavaScriptChannelNames(channelNames, interfaceName);
+      }
+    } else if (params.containsKey(JS_CHANNEL_NAMES_FIELD)) {
       List<String> names = (List<String>) params.get(JS_CHANNEL_NAMES_FIELD);
       if (names != null) registerJavaScriptChannelNames(names);
     }
@@ -200,6 +209,9 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
         break;
       case "addJavascriptChannels":
         addJavaScriptChannels(methodCall, result);
+        break;
+      case "addJavascriptInterface":
+        addJavascriptInterface(methodCall, result);
         break;
       case "removeJavascriptChannels":
         removeJavaScriptChannels(methodCall, result);
@@ -296,6 +308,7 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
   private void addJavaScriptChannels(MethodCall methodCall, Result result) {
     List<String> channelNames = (List<String>) methodCall.arguments;
     registerJavaScriptChannelNames(channelNames);
+    //registerJavaScriptChannelNames(channelNames, "externalApp");
     result.success(null);
   }
 
@@ -306,6 +319,17 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
       webView.removeJavascriptInterface(channelName);
     }
     result.success(null);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void addJavascriptInterface(MethodCall methodCall, Result result) {
+    HashMap<String, Object> argumentsMap = (HashMap<String, Object>) methodCall.arguments;
+    List<String> channelNames = (List<String>) argumentsMap.get("channelNames");
+    String interfaceName = (String) argumentsMap.get("interfaceName");
+    if(channelNames != null && interfaceName != null) {
+      registerJavaScriptChannelNames(channelNames, interfaceName);
+      result.success(null);
+    }
   }
 
   private void clearCache(Result result) {
@@ -407,6 +431,15 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
     for (String channelName : channelNames) {
       webView.addJavascriptInterface(
           new JavaScriptChannel(methodChannel, channelName, platformThreadHandler), channelName);
+    }
+  }
+
+  // Add channels to custom interface for Home Assistant external authentication
+  // https://developers.home-assistant.io/docs/frontend/external-authentication/
+  private void registerJavaScriptChannelNames(List<String> channelNames, String interfaceName) {
+    for (String channelName : channelNames) {
+      webView.addJavascriptInterface(
+              new JavaScriptChannel(methodChannel, channelName, platformThreadHandler), interfaceName);
     }
   }
 

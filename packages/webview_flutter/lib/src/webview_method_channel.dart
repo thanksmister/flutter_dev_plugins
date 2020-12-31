@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../platform_interface.dart';
+import '../platform_interface.dart';
 
 /// A [WebViewPlatformController] that uses a method channel to control the webview.
 class MethodChannelWebViewPlatform implements WebViewPlatformController {
@@ -132,6 +133,13 @@ class MethodChannelWebViewPlatform implements WebViewPlatformController {
   }
 
   @override
+  Future<void> addJavascriptInterface(JavaScriptInterface javaScriptInterface) {
+    final Map<String, dynamic> interfaceMap = _interfaceToMap(javaScriptInterface);
+    return _channel.invokeMethod<void>(
+        'addJavascriptInterface', interfaceMap);
+  }
+
+  @override
   Future<String?> getTitle() => _channel.invokeMethod<String>("getTitle");
 
   @override
@@ -163,6 +171,19 @@ class MethodChannelWebViewPlatform implements WebViewPlatformController {
     return _cookieManagerChannel
         .invokeMethod<bool>('clearCookies')
         .then<bool>((dynamic result) => result!);
+  }
+
+  static Map<String, dynamic> _interfaceToMap(JavaScriptInterface? interface) {
+    final Map<String, dynamic> map = <String, dynamic>{};
+    void _addIfNonNull(String key, dynamic value) {
+      if (value == null) {
+        return;
+      }
+      map[key] = value;
+    }
+    _addIfNonNull('channelNames', interface?.channels.toList());
+    _addIfNonNull('interfaceName', interface?.interfaceName);
+    return map;
   }
 
   static Map<String, dynamic> _webSettingsToMap(WebSettings? settings) {
@@ -202,6 +223,7 @@ class MethodChannelWebViewPlatform implements WebViewPlatformController {
       'initialUrl': creationParams.initialUrl,
       'settings': _webSettingsToMap(creationParams.webSettings),
       'javascriptChannelNames': creationParams.javascriptChannelNames.toList(),
+      'javascriptInterface': _interfaceToMap(creationParams.javascriptInterface),
       'userAgent': creationParams.userAgent,
       'autoMediaPlaybackPolicy': creationParams.autoMediaPlaybackPolicy.index,
     };
