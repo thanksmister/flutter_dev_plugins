@@ -68,4 +68,15 @@ class JavaScriptChannel {
     public void getExternalAuth(final String payload) {
         postMessage(payload);
     }
+
+    // TODO revoke external token method
+
+    /**
+     * Interface method for detecting user touch events.
+     * @param message
+     */
+    @JavascriptInterface
+    public void onUserTouchEvent(final String message) {
+        postMessage(message);
+    }
 }
