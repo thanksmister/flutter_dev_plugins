@@ -438,8 +438,7 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
   // https://developers.home-assistant.io/docs/frontend/external-authentication/
   private void registerJavaScriptChannelNames(List<String> channelNames, String interfaceName) {
     for (String channelName : channelNames) {
-      webView.addJavascriptInterface(
-              new JavaScriptChannel(methodChannel, channelName, platformThreadHandler), interfaceName);
+      webView.addJavascriptInterface(new JavaScriptChannel(methodChannel, channelName, platformThreadHandler), interfaceName);
     }
   }
 
