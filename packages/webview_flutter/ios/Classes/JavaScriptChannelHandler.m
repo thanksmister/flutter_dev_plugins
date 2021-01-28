@@ -21,8 +21,7 @@
   return self;
 }
 
-- (void)userContentController:(WKUserContentController*)userContentController
-      didReceiveScriptMessage:(WKScriptMessage*)message {
+- (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message {
   NSAssert(_methodChannel != nil, @"Can't send a message to an unitialized JavaScript channel.");
   NSAssert(_javaScriptChannelName != nil,
            @"Can't send a message to an unitialized JavaScript channel.");
@@ -31,6 +30,10 @@
     @"message" : [NSString stringWithFormat:@"%@", message.body]
   };
   [_methodChannel invokeMethod:@"javascriptChannelMessage" arguments:arguments];
+}
+
+-(void)getExternalAuth:(NSString*)payload {
+    [self userContentController:[WKUserContentController init] didReceiveScriptMessage:payload];
 }
 
 @end

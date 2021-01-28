@@ -78,10 +78,17 @@
     _javaScriptChannelNames = [[NSMutableSet alloc] init];
 
     WKUserContentController* userContentController = [[WKUserContentController alloc] init];
-    if ([args[@"javascriptChannelNames"] isKindOfClass:[NSArray class]]) {
+    if ([args[@"javascriptChannelNames"] isKindOfClass:[NSArray class]])
+    {
       NSArray* javaScriptChannelNames = args[@"javascriptChannelNames"];
+        NSString *interface = args[@"interfaceName"];
       [_javaScriptChannelNames addObjectsFromArray:javaScriptChannelNames];
-      [self registerJavaScriptChannels:_javaScriptChannelNames controller:userContentController];
+        if (interface.length > 0)
+        {
+            [self registerJavaScriptChannels:_javaScriptChannelNames controller:userContentController interface:interface];
+        } else {
+            [self registerJavaScriptChannels:_javaScriptChannelNames controller:userContentController];
+        }
     }
 
     NSDictionary<NSString*, id>* settings = args[@"settings"];
@@ -415,12 +422,27 @@
   return true;
 }
 
-- (void)registerJavaScriptChannels:(NSSet*)channelNames
-                        controller:(WKUserContentController*)userContentController {
-  for (NSString* channelName in channelNames) {
-    FLTJavaScriptChannel* channel =
-        [[FLTJavaScriptChannel alloc] initWithMethodChannel:_channel
-                                      javaScriptChannelName:channelName];
+- (void)registerJavaScriptChannels:(NSSet*)channelNames controller:(WKUserContentController*)userContentController interface:(NSString*)interface
+{
+  for (NSString* channelName in channelNames)
+  {
+    FLTJavaScriptChannel* channel = [[FLTJavaScriptChannel alloc] initWithMethodChannel:_channel javaScriptChannelName:channelName];
+    [userContentController addScriptMessageHandler:channel name:interface];
+    NSString* wrapperSource = [NSString
+        stringWithFormat:@"window.%@ = webkit.messageHandlers.%@;", channelName, interface];
+    WKUserScript* wrapperScript =
+        [[WKUserScript alloc] initWithSource:wrapperSource
+                               injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                            forMainFrameOnly:NO];
+    [userContentController addUserScript:wrapperScript];
+  }
+}
+
+- (void)registerJavaScriptChannels:(NSSet*)channelNames controller:(WKUserContentController*)userContentController
+{
+  for (NSString* channelName in channelNames)
+  {
+    FLTJavaScriptChannel* channel = [[FLTJavaScriptChannel alloc] initWithMethodChannel:_channel javaScriptChannelName:channelName];
     [userContentController addScriptMessageHandler:channel name:channelName];
     NSString* wrapperSource = [NSString
         stringWithFormat:@"window.%@ = webkit.messageHandlers.%@;", channelName, channelName];
